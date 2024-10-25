@@ -11,7 +11,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
     private Button internalStorage;
     private Button externalStorage;
@@ -22,10 +22,10 @@ public class MainActivity extends AppCompatActivity {
         this.setContentView(R.layout.activity_main);
 
         this.internalStorage = (Button) findViewById(R.id.main_internal_storage_button);
-        this.internalStorage.setOnClickListener((View.OnClickListener) this);
+        this.internalStorage.setOnClickListener(this); // Corrigido
 
         this.externalStorage = (Button) findViewById(R.id.main_external_storage_button);
-        this.externalStorage.setOnClickListener((View.OnClickListener) this);
+        this.externalStorage.setOnClickListener(this);
     }
 
     public void onClick(View v) {
