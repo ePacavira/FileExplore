@@ -2,10 +2,10 @@ package ao.co.isptec.aplm.fileexplorer;
 
 import android.app.Activity;
 import android.content.Context;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -20,6 +20,7 @@ import java.util.Scanner;
 public class InternalStorage extends Activity {
 
     private static final String LINE_SEP = System.getProperty("line.separator");
+    private static final String FILE_NAME = "test.txt";
 
     private EditText input;
     private TextView output;
@@ -31,72 +32,88 @@ public class InternalStorage extends Activity {
         super.onCreate(icicle);
         this.setContentView(R.layout.internal_storage);
 
-        this.input = (EditText) findViewById(R.id.internal_storage_input);
-        this.output = (TextView) findViewById(R.id.internal_storage_output);
+        this.input = findViewById(R.id.internal_storage_input);
+        this.output = findViewById(R.id.internal_storage_output);
 
-        this.write = (Button) findViewById(R.id.internal_storage_write_button);
-        this.write.setOnClickListener(new OnClickListener() {
+        this.write = findViewById(R.id.internal_storage_write_button);
+        this.write.setOnClickListener(new View.OnClickListener() {
             public void onClick(final View v) {
-                write();
+                new WriteTask().execute(input.getText().toString());
             }
         });
 
-        this.read = (Button) findViewById(R.id.internal_storage_read_button);
-        this.read.setOnClickListener(new OnClickListener() {
+        this.read = findViewById(R.id.internal_storage_read_button);
+        this.read.setOnClickListener(new View.OnClickListener() {
             public void onClick(final View v) {
-                read();
+                new ReadTask().execute();
             }
         });
     }
 
-    private void write() {
-        FileOutputStream fos = null;
-        try {
-            // note that there are many modes you can use
-            fos = openFileOutput("test.txt", Context.MODE_PRIVATE);
-            fos.write(input.getText().toString().getBytes());
-            Toast.makeText(this, "File written", Toast.LENGTH_SHORT).show();
-            input.setText("");
-            output.setText("");
-        } catch (FileNotFoundException e) {
-            Log.e(Constants.LOG_TAG, "File not found", e);
-        } catch (IOException e) {
-            Log.e(Constants.LOG_TAG, "IO problem", e);
-        } finally {
+    private class WriteTask extends AsyncTask<String, Void, Void> {
+        @Override
+        protected Void doInBackground(String... params) {
+            FileOutputStream fos = null;
             try {
-                fos.close();
+                fos = openFileOutput(FILE_NAME, Context.MODE_PRIVATE);
+                fos.write(params[0].getBytes());
+            } catch (FileNotFoundException e) {
+                Log.e(Constants.LOG_TAG, "File not found", e);
             } catch (IOException e) {
-                Log.d("FileExplorer", "Close error.");
-            }
-        }
-    }
-
-    private void read() {
-        FileInputStream fis = null;
-        Scanner scanner = null;
-        StringBuilder sb = new StringBuilder();
-        try {
-            fis = openFileInput("test.txt");
-            // scanner does mean one more object, but it's easier to work with
-            scanner = new Scanner(fis);
-            while (scanner.hasNextLine()) {
-                sb.append(scanner.nextLine() + LINE_SEP);
-            }
-            Toast.makeText(this, "File read", Toast.LENGTH_SHORT).show();
-        } catch (FileNotFoundException e) {
-            Log.e(Constants.LOG_TAG, "File not found", e);
-        } finally {
-            if (fis != null) {
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    Log.d("FileExplorer", "Close error.");
+                Log.e(Constants.LOG_TAG, "IO problem", e);
+            } finally {
+                if (fos != null) {
+                    try {
+                        fos.close();
+                    } catch (IOException e) {
+                        Log.d("FileExplorer", "Close error.");
+                    }
                 }
             }
-            if (scanner != null) {
-                scanner.close();
-            }
+            return null;
         }
-        output.setText(sb.toString());
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            Toast.makeText(InternalStorage.this, "File written", Toast.LENGTH_SHORT).show();
+            input.setText("");
+            output.setText("");
+        }
+    }
+
+    private class ReadTask extends AsyncTask<Void, Void, String> {
+        @Override
+        protected String doInBackground(Void... voids) {
+            FileInputStream fis = null;
+            Scanner scanner = null;
+            StringBuilder sb = new StringBuilder();
+            try {
+                fis = openFileInput(FILE_NAME);
+                scanner = new Scanner(fis);
+                while (scanner.hasNextLine()) {
+                    sb.append(scanner.nextLine()).append(LINE_SEP);
+                }
+            } catch (FileNotFoundException e) {
+                Log.e(Constants.LOG_TAG, "File not found", e);
+            } finally {
+                if (fis != null) {
+                    try {
+                        fis.close();
+                    } catch (IOException e) {
+                        Log.d("FileExplorer", "Close error.");
+                    }
+                }
+                if (scanner != null) {
+                    scanner.close();
+                }
+            }
+            return sb.toString();
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            output.setText(result);
+            Toast.makeText(InternalStorage.this, "File read", Toast.LENGTH_SHORT).show();
+        }
     }
 }

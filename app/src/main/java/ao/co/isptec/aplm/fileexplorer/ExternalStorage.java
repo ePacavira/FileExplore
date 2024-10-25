@@ -3,8 +3,10 @@ package ao.co.isptec.aplm.fileexplorer;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask; // Importar AsyncTask
 import android.os.Bundle;
 import android.os.Environment;
+import android.util.Log; // Importar Log
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -74,10 +76,7 @@ public class ExternalStorage extends Activity {
                 dir.mkdirs(); // Cria o diretório se não existir
             }
             File file = new File(dir, "test.txt");
-            FileUtil.writeStringAsFile(input.getText().toString(), file);
-            Toast.makeText(this, "File written: " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-            input.setText("");
-            output.setText("");
+            new FileWriteTask().execute(file); // Executa a tarefa assíncrona
         } else {
             Toast.makeText(this, "External storage not writable", Toast.LENGTH_SHORT).show();
         }
@@ -87,14 +86,65 @@ public class ExternalStorage extends Activity {
         if (FileUtil.isExternalStorageReadable()) {
             File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             File file = new File(dir, "test.txt");
-            if (file.exists() && file.canRead()) {
-                output.setText(FileUtil.readFileAsString(file));
-                Toast.makeText(this, "File read", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Unable to read file: " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-            }
+            new FileReadTask().execute(file); // Executa a tarefa assíncrona
         } else {
             Toast.makeText(this, "External storage not readable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // Tarefa assíncrona para escrita de arquivo
+    private class FileWriteTask extends AsyncTask<File, Void, String> {
+        @Override
+        protected String doInBackground(File... files) {
+            // Verifica o nome da thread
+            String threadName = Thread.currentThread().getName();
+            Log.i("FileWriteTask", "Executing doInBackground in thread: " + threadName); // Log para verificar a thread
+
+            File file = files[0];
+            FileUtil.writeStringAsFile(input.getText().toString(), file);
+            return file.getAbsolutePath();
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            // Verifica o nome da thread
+            String threadName = Thread.currentThread().getName();
+            Log.i("FileWriteTask", "Executing onPostExecute in thread: " + threadName); // Log para verificar a thread
+
+            Toast.makeText(ExternalStorage.this, "File written: " + result, Toast.LENGTH_SHORT).show();
+            input.setText("");
+            output.setText("");
+        }
+    }
+
+    // Tarefa assíncrona para leitura de arquivo
+    private class FileReadTask extends AsyncTask<File, Void, String> {
+        @Override
+        protected String doInBackground(File... files) {
+            // Verifica o nome da thread
+            String threadName = Thread.currentThread().getName();
+            Log.i("FileReadTask", "Executing doInBackground in thread: " + threadName); // Log para verificar a thread
+
+            File file = files[0];
+            if (file.exists() && file.canRead()) {
+                return FileUtil.readFileAsString(file);
+            } else {
+                return null; // Indica que o arquivo não pode ser lido
+            }
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            // Verifica o nome da thread
+            String threadName = Thread.currentThread().getName();
+            Log.i("FileReadTask", "Executing onPostExecute in thread: " + threadName); // Log para verificar a thread
+
+            if (result != null) {
+                output.setText(result);
+                Toast.makeText(ExternalStorage.this, "File read", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(ExternalStorage.this, "Unable to read file", Toast.LENGTH_SHORT).show();
+            }
         }
     }
 }
